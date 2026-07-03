@@ -20,6 +20,10 @@ export interface RunContext {
 
 /** Point the Agent SDK at the right LLM endpoint. See notes/agent-sdk-reference.md (auth). */
 export function configureAuth(): void {
+  // The Claude Code CLI (which the Agent SDK spawns) refuses --dangerously-skip-permissions
+  // as root unless IS_SANDBOX=1. We run as root in-container, and permissionMode
+  // 'bypassPermissions' passes that flag, so this is required or the CLI exits 1.
+  process.env.IS_SANDBOX = "1";
   const proxyUrl = process.env.OSS_CRS_LLM_API_URL || process.env.EXTERNAL_LITELLM_API_BASE || "";
   const keyFile = process.env.OSS_CRS_LLM_API_KEY_FILE;
   const key =
