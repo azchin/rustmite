@@ -57,8 +57,9 @@ RUN set -e; \
       && rustup toolchain install stable --profile minimal \
       && rustup component add miri rust-src --toolchain "${RUST_NIGHTLY}" \
       && cargo +"${RUST_NIGHTLY}" miri --version \
+      && cargo +"${RUST_NIGHTLY}" miri setup \
       && command -v rust-gdb \
-      && echo "rustup + miri + rust-gdb OK" ) \
+      && echo "rustup + miri (sysroot built) + rust-gdb OK" ) \
     || echo "WARN: rustup/miri install failed; crs-miri and rust-gdb will be unavailable"; \
     rm -f /tmp/rustup-init.sh; \
     chmod -R a+rwX "$CARGO_HOME" "$RUSTUP_HOME" 2>/dev/null || true

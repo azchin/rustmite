@@ -29,8 +29,15 @@ Reference CRS being ported/mined: `~/post/crs-bug-finding-reference` (esp.
   byte-vecs (Kani records one per `any()` draw; `[u8;N]`=N of them) → `.bin` → `run-pov`
   (Tier-1 PoV, else Tier-3 SARIF). Host test on a `[u8;4]` proof produced the exact
   counterexample `fe ff ff ff`; parser reconstructs it. `kani-prove` agent + skill; wired into
-  the `run` roster + `run_kani_only`. **Pending:** full in-container agentic validation run
-  (T2 checks-enabled rebuild via build_project still a TODO in the tool).
+  the `run` roster + `run_kani_only`. **Validated end-to-end IN-CONTAINER** (run
+  rustmite-kani-2 on image-png): base-OS-aware kani install (glibc 2.31 → kani 0.55.0, "runs"
+  check passes); the kani-prove agent wrote a real proof over image-png's IHDR validation
+  (`kani_ihdr_bpp_and_rowlen_sound`, ColorType/BitDepth::from_u8) → Kani `VERIFICATION:-
+  SUCCESSFUL` ×6 (CBMC observed running); and the FAILED→concretize path proven deterministically
+  in the runner (index-OOB → bytes `254 255 255 255`, matching host 0.67). Surfaced+fixed a
+  crs-kani false-negative (a cargo build error was misreported as SUCCESS). **Notes:** kani
+  0.55 (20.04) bundles Cargo 1.83-nightly → only builds ≤edition-2021 crates; T2 checks-enabled
+  rebuild via build_project still a TODO.
 - [ ] **M2** — Miri oracle (crs-miri + miri-triage; corpus/crash triage → T1/T3).
 - [ ] **M3** — Harness-gen (crs-bolero + crs-harness + harness-smith; feedback loop).
 - [ ] **Cross-cutting** — crs-sarif, threat-model asset, tiered submission pipeline,

@@ -1,7 +1,8 @@
 // rustmite run-phase entrypoint. Dispatches on $CRS_ENTRYPOINT:
-//   run            - full supervisor: fuzzing + kani (+ miri M2, + harness-gen M3) subagents
+//   run            - full supervisor: fuzzing + kani + miri (+ harness-gen M3) subagents
 //   run_fuzz_only  - fuzzing loop only (seed-gen ∥ pov-gen ∥ pov-gen-cov)
 //   run_kani_only  - kani-prove only (isolated M1 validation)
+//   run_miri_only  - miri-triage only (isolated M2 validation)
 //   idle           - boot, then sleep (docker exec in to drive crs-* tools by hand)
 
 import { boot } from "./boot.js";
@@ -9,9 +10,10 @@ import { harnessName, log } from "./common.js";
 import { runSupervisor } from "./drivers/fuzz.js";
 
 const ROSTERS: Record<string, string[]> = {
-  run: ["seed-gen", "pov-gen", "pov-gen-cov", "kani-prove"],
+  run: ["seed-gen", "pov-gen", "pov-gen-cov", "kani-prove", "miri-triage"],
   run_fuzz_only: ["seed-gen", "pov-gen", "pov-gen-cov"],
   run_kani_only: ["kani-prove"],
+  run_miri_only: ["miri-triage"],
 };
 
 async function main(): Promise<void> {

@@ -11,6 +11,11 @@ available (delegate via the Task/Agent tool). The full roster:
     Use it for narrow, arithmetic/indexing-heavy leaf functions where the fuzzer plateaus — NOT
     on whole parsers (Kani state-explodes). Point it at functions the coverage report shows as
     reached-but-shallow, or at leaves `pov-gen` flagged as suspicious but hard to hit by hand.
+  * `miri-triage` (dynamic UB oracle) — runs ONE suspicious input (a crash artifact, or a
+    corpus seed reaching `unsafe`) through Miri to catch undefined behavior the sanitizer
+    misses, then tiers it (Tier-1 PoV / Tier-3 SARIF). Feed it inputs seed-gen/pov-gen surface
+    that touch `unsafe` (raw pointers, `get_unchecked`, `transmute`); it's slow (pure-Rust
+    paths only), so hand it a few high-value inputs, not the whole corpus.
 
 Only delegate to subagents that appear in your task's roster; ignore the rest.
 
