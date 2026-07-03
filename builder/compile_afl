@@ -1,0 +1,12 @@
+#!/bin/bash
+#
+# AFL build (Rust): OSS-Fuzz supports rust + AFL natively — `cargo fuzz build` links the
+# AFL++ driver (libAFLDriver.a) via CUSTOM_LIBFUZZER_PATH (set by compile_afl), and rust's
+# SanitizerCoverage instrumentation feeds AFL. The resulting $OUT binaries are AFL-
+# instrumented and run-pov-compatible. Output key must match the `afl-build` phase in
+# oss-crs/crs.yaml. No bolero/cargo-afl needed.
+#
+set -e
+
+FUZZING_ENGINE=afl compile
+libCRS submit-build-output "$OUT" afl

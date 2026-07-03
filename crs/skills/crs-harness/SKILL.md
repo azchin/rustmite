@@ -1,6 +1,6 @@
 ---
 name: crs-harness
-description: (Rust) Build a generated/transformed OSS-Fuzz harness in-container to get a rebuild_id (so fuzz/kani/miri finds verify against it via run-pov), and submit the harness project for other CRSs. Use after scaffolding a new fuzz_target!/bolero harness for an under-tested api.
+description: (Rust) Build a generated OSS-Fuzz harness in-container to get a rebuild_id (so fuzz/kani/miri finds verify against it via run-pov), and submit the harness project for other CRSs. Use after scaffolding a new fuzz_target! for an under-tested api. Supports per-engine builds (libFuzzer/afl/honggfuzz) via --builder-name.
 ---
 
 # crs-harness — build + submit generated harnesses
@@ -10,10 +10,11 @@ the rebuild, and also submits the source for other CRSs.
 
 ## Build a modified project → rebuild_id
 Scaffold a **modified copy** of the OSS-Fuzz project dir (new/edited `fuzz_target!` + build.sh)
-and/or the target source (new bolero harness, deps), then:
+and/or the target source (new harness deps), then:
 ```bash
 crs-harness build --proj-dir <modified-fuzz-proj> [--source-dir <modified-crate>]
 # -> libCRS build-project (diffs vs the base mounts, rebuilds) -> prints rebuild_id
+# engine variants:  crs-harness build ... --builder-name afl-build   (or honggfuzz-build)
 ```
 Verify a crashing input against that rebuild:
 ```bash

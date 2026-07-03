@@ -76,7 +76,7 @@ function prove(crateDir: string, harness: string, povHarness?: string): number {
   // Kani records one inner Vec per `kani::any()` draw. For `let data:[u8;N]=kani::any()`
   // that's N one-byte vecs, so the input array = concatenation of all inner vecs in order.
   // (For structured `Arbitrary` inputs this is the typed decode, not the raw libFuzzer byte
-  // stream — those need re-encoding; the bolero/[u8;N] shape avoids that.)
+  // stream — those need re-encoding; the plain `[u8;N]` proof shape avoids that.)
   const bytes = Buffer.concat(vals.map((v) => Buffer.from(v)));
   const kdir = path.join(WORK_DIR, "agent", "kani");
   fs.mkdirSync(kdir, { recursive: true });

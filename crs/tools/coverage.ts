@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // crs-coverage: replay the corpus through the coverage-instrumented harness and emit an
 // llvm-cov summary + biggest-gap files. Ported from crs-bug-finding-reference; llvm-cov is
-// language-neutral (cargo-fuzz/bolero coverage builds are llvm-instrumented).
+// language-neutral (cargo-fuzz coverage builds are llvm-instrumented).
 //
 //   crs-coverage --harness H [--corpus DIR] [--build-dir DIR]
 

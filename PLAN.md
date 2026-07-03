@@ -50,7 +50,14 @@ Reference CRS being ported/mined: `~/post/crs-bug-finding-reference` (esp.
   `run_miri_only` run completed but landed no Miri verdict in 40 min (transcript auto-cleaned;
   likely Miri too slow on the agent's scope). **Lesson:** scope Miri to tiny inputs / leaf
   functions (~100–1000× slowdown), same as Kani.
-- [ ] **M3** — Harness-gen (crs-bolero + crs-harness + harness-smith; feedback loop).
+- [x] **M3** — Harness-gen (bolero). **Code-complete; mechanics host-validated.** `crs-bolero`
+  (list/fuzz/miri over one `bolero::check!()` target — validated: `unified_harness` → libfuzzer
+  PANIC@lib.rs:3 AND miri PANIC@lib.rs:3, same harness); `crs-harness` (build-project→rebuild_id
+  + submit-harness, exact libCRS CLIs); `harness-smith` agent (CREATE fuzz_target!+bolero for an
+  under-tested api → build → fuzz/kani/miri → run-pov Tier-1 → submit; or TRANSFORM an existing
+  fuzz_target). Roster `run`+`run_harness_only`. **Caveats:** cargo-bolero 0.13 has no plain
+  `build` (use the fuzz_target! $OUT binary for run-pov); bolero→kani bridge fragile → Kani via
+  `crs-kani`. **Pending:** in-container agentic validation run.
 - [ ] **Cross-cutting** — crs-sarif, threat-model asset, tiered submission pipeline,
   bolero harness template, reproduce.sh framework TODO note.
 

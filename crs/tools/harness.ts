@@ -16,7 +16,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { WORK_DIR, run, log } from "../common.js";
 
-function build(projDir?: string, sourceDir?: string, rebuildId?: string): number {
+function build(projDir?: string, sourceDir?: string, rebuildId?: string, builderName?: string): number {
   if (!projDir && !sourceDir) { console.error("crs-harness build: need --proj-dir and/or --source-dir"); return 2; }
   const resp = path.join(WORK_DIR, "agent", "harness", `build_${Date.now()}`);
   fs.mkdirSync(resp, { recursive: true });
@@ -24,6 +24,8 @@ function build(projDir?: string, sourceDir?: string, rebuildId?: string): number
   if (projDir) args.push("--fuzz-proj-dir", projDir);
   if (sourceDir) args.push("--target-source-dir", sourceDir);
   if (rebuildId) args.push("--rebuild-id", rebuildId);
+  // Select the engine builder (build [libFuzzer] | afl-build | honggfuzz-build); default libFuzzer.
+  if (builderName) args.push("--builder-name", builderName);
   log(`build-project: proj=${projDir ?? "-"} source=${sourceDir ?? "-"}`);
   const r = run("libCRS", args, { timeoutMs: 60 * 60_000 });
   process.stdout.write(r.stdout); process.stderr.write(r.stderr);
@@ -55,7 +57,7 @@ function main(): number {
   const [sub, ...argv] = process.argv.slice(2);
   const opt: Record<string, string> = {};
   for (let i = 0; i < argv.length; i++) { if (argv[i].startsWith("--")) opt[argv[i].slice(2)] = argv[++i]; }
-  if (sub === "build") return build(opt["proj-dir"], opt["source-dir"], opt["rebuild-id"]);
+  if (sub === "build") return build(opt["proj-dir"], opt["source-dir"], opt["rebuild-id"], opt["builder-name"]);
   if (sub === "submit") return submit(opt["proj-dir"], opt["source-dir"], opt.name);
   console.error("crs-harness: usage: crs-harness build|submit --proj-dir <d> [--source-dir <s>] [--name <n>] [--rebuild-id N]");
   return 2;

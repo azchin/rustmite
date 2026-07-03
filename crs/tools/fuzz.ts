@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // crs-fuzz: run a libFuzzer harness (fork mode) — long-running background or foreground.
-// Ported from crs-bug-finding-reference/crs/tools/fuzzer.py. cargo-fuzz / cargo-bolero
+// Ported from crs-bug-finding-reference/crs/tools/fuzzer.py. cargo-fuzz / the AFL & honggfuzz
 // emit standard libFuzzer binaries, so this is language-neutral.
 //
 //   crs-fuzz start   --harness H          launch ONE background fuzzer (-reload=1)
@@ -16,7 +16,7 @@ import * as os from "node:os";
 import * as crypto from "node:crypto";
 import {
   POV_DIR, WORK_DIR, corpusDir, resolveBuildDir, harnessBinary, run, spawnBackground,
-  alive, log, listFiles,
+  alive, have, log, listFiles,
 } from "../common.js";
 
 const RUNDIR = process.env.CRS_FUZZ_RUNDIR ?? path.join(WORK_DIR, "agent", "fuzz");
@@ -77,24 +77,56 @@ function readState(h: string): { pid: number; started: number; corpus_at_start: 
   try { return JSON.parse(fs.readFileSync(pidfile(h), "utf8")); } catch { return null; }
 }
 
-function start(h: string, extra: string[]): number {
+// engine -> build variant holding that engine's instrumented $OUT harness binary.
+function engineBuild(engine: string): "asan" | "afl" | "honggfuzz" {
+  return engine === "afl" ? "afl" : engine === "honggfuzz" ? "honggfuzz" : "asan";
+}
+
+function start(h: string, extra: string[], engine = "libfuzzer"): number {
   const st = readState(h);
   if (st && alive(st.pid)) {
     log(`fuzzer already running for ${h} (pid=${st.pid}); use add-seeds to feed it`);
     return 1;
   }
-  const bd = resolveBuildDir("asan");
+  const bd = resolveBuildDir(engineBuild(engine));
   const hb = harnessBinary(bd, h);
-  if (!fs.existsSync(hb)) { log(`harness not found: ${hb}`); return 2; }
+  if (!fs.existsSync(hb)) { log(`${engine} harness not found: ${hb} (built by the ${engine === "libfuzzer" ? "build" : engine + "-build"} phase)`); return 2; }
   const corpus = corpusDir(h);
   fs.mkdirSync(POV_DIR, { recursive: true });
   seedFromBoot(corpus);
   const jobs = cpus();
   fs.mkdirSync(RUNDIR, { recursive: true });
-  const cmd = buildCmd(hb, corpus, 0, jobs, extra);
-  const pid = spawnBackground(cmd[0], cmd.slice(1), { logfile: logfile(h) });
+
+  if (engine === "libfuzzer") {
+    const cmd = buildCmd(hb, corpus, 0, jobs, extra);
+    const pid = spawnBackground(cmd[0], cmd.slice(1), { logfile: logfile(h) });
+    fs.writeFileSync(pidfile(h), JSON.stringify({ pid, started: Date.now(), corpus_at_start: count(corpus) }));
+    log(`started libFuzzer for ${h}: pid=${pid}, -fork=${jobs}, corpus=${count(corpus)}, log ${logfile(h)}. Feed it with crs-fuzz add-seeds.`);
+    return 0;
+  }
+
+  // AFL / honggfuzz: same run-pov-compatible OSS-Fuzz binary, driven by its native fuzzer.
+  // Crashes are routed to the PoV dir (auto-submitted). Best-effort — gated on tool presence.
+  if (count(corpus) === 0) fs.writeFileSync(path.join(corpus, "seed0"), Buffer.from([0]));
+  let cmd: string[];
+  let env: NodeJS.ProcessEnv = {};
+  if (engine === "afl") {
+    if (!have("afl-fuzz")) { log("afl-fuzz not available in this runner"); return 3; }
+    const out = path.join(RUNDIR, `afl-${slug(h)}`); fs.mkdirSync(out, { recursive: true });
+    env = { AFL_SKIP_CPUFREQ: "1", AFL_NO_UI: "1", AFL_SKIP_BIN_CHECK: "1", AFL_AUTORESUME: "1" };
+    cmd = ["afl-fuzz", "-i", corpus, "-o", out, "--", hb];
+    // sync AFL's crashes into the PoV dir (AFL has no libFuzzer artifact_prefix).
+    spawnBackground("bash", ["-c",
+      `while true; do cp -n ${out}/*/crashes/id* ${POV_DIR}/ 2>/dev/null; sleep 10; done`],
+      { logfile: "/dev/null" });
+  } else { // honggfuzz
+    const hf = path.join(bd, "honggfuzz");
+    if (!fs.existsSync(hf)) { log(`honggfuzz runner not found at ${hf}`); return 3; }
+    cmd = [hf, "-n", String(jobs), "--persistent", "-i", corpus, "-o", corpus, "--crashdir", POV_DIR, "--", hb];
+  }
+  const pid = spawnBackground(cmd[0], cmd.slice(1), { cwd: corpus, env, logfile: logfile(h) });
   fs.writeFileSync(pidfile(h), JSON.stringify({ pid, started: Date.now(), corpus_at_start: count(corpus) }));
-  log(`started background fuzzer for ${h}: pid=${pid}, -fork=${jobs}, corpus=${count(corpus)}, log ${logfile(h)}. Feed it with crs-fuzz add-seeds.`);
+  log(`started ${engine} for ${h}: pid=${pid}, jobs=${jobs}, corpus=${count(corpus)}, log ${logfile(h)}. Crashes -> PoV dir.`);
   return 0;
 }
 
@@ -164,6 +196,7 @@ function parse(argv: string[]): { harness: string; rest: string[]; opts: Record<
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--harness") opts.harness = argv[++i];
+    else if (a === "--engine") opts.engine = argv[++i];
     else if (a === "--seconds") opts.seconds = argv[++i];
     else if (a === "--merge") opts.merge = "1";
     else if (a === "--dict") rest.push(`-dict=${argv[++i]}`);
@@ -177,9 +210,9 @@ function main(): number {
   const [sub, ...argv] = process.argv.slice(2);
   const lifecycle = ["start", "status", "stop", "add-seeds"];
   if (lifecycle.includes(sub)) {
-    const { harness, rest } = parse(argv);
+    const { harness, rest, opts } = parse(argv);
     if (!harness) { console.error("crs-fuzz: no --harness"); return 2; }
-    if (sub === "start") return start(harness, rest);
+    if (sub === "start") return start(harness, rest, opts.engine ?? "libfuzzer");
     if (sub === "status") return status(harness);
     if (sub === "stop") return stop(harness);
     if (sub === "add-seeds") { const dir = rest[0]; if (!dir) { console.error("crs-fuzz add-seeds: missing <dir>"); return 2; } return addSeeds(harness, dir) >= 0 ? 0 : 1; }

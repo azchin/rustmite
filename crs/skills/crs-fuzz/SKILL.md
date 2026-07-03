@@ -11,8 +11,12 @@ with `-reload=1`, so one long-running fuzzer keeps picking up new seeds you add 
 restart it. Your edge is generating valid, structured seeds it can't brute-force.
 
 ## Lifecycle
-- `crs-fuzz start --harness {harness}` — launch ONE background fuzzer (runs until stopped).
+- `crs-fuzz start --harness {harness}` — launch ONE background libFuzzer (runs until stopped).
   Start it once, early.
+- `crs-fuzz start --harness {harness} --engine afl` (or `honggfuzz`) — run the same harness
+  under a different engine, using the engine-specific build phase's binary. Different
+  mutation/scheduling sometimes reaches bugs libFuzzer plateaus on; crashes still go to the PoV
+  dir. libFuzzer is the primary/default engine.
 - `crs-fuzz add-seeds --harness {harness} <dir>` — coverage-merge the seeds in `<dir>` into the
   live corpus (keeps only inputs that add coverage; `before -> after` shows how many landed).
   The running fuzzer reloads them — this replaces restarting.

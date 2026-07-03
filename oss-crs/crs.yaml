@@ -6,17 +6,27 @@ version: 0.1.0
 docker_registry: ghcr.io/andrewqchin/rustmite
 
 # No prepare_phase: the runner builds FROM the framework-provided base_runner_image at
-# run time and installs its own tooling (Rust + CBMC + bolero/miri + Node + Agent SDK).
+# run time and installs its own tooling (Rust + CBMC + miri + Node + Agent SDK).
 
-# Rust-only. cargo-fuzz / cargo-bolero emit standalone libFuzzer $OUT binaries that the
-# framework's run-pov executes directly; the toolchain engines (Kani, Miri, bolero) run
-# from /src in the runner (hence the `src` output below is required, not optional).
+# Rust-only. Each fuzzing engine gets its OWN build phase emitting an engine-specific
+# harness under a distinct output key (build=libFuzzer, afl, honggfuzz) — OSS-Fuzz supports
+# rust+AFL/honggfuzz natively via `cargo fuzz build` + CUSTOM_LIBFUZZER_PATH, so no bolero
+# is needed for engine diversity. All are standalone $OUT binaries run-pov executes directly.
+# The toolchain engines (Kani, Miri) run from /src in the runner (hence `src` is required).
 target_build_phase:
 - name: build
   dockerfile: oss-crs/dockerfiles/builder.Dockerfile
   outputs:
   - build
   - src
+- name: afl-build
+  dockerfile: oss-crs/dockerfiles/afl-builder.Dockerfile
+  outputs:
+  - afl
+- name: honggfuzz-build
+  dockerfile: oss-crs/dockerfiles/honggfuzz-builder.Dockerfile
+  outputs:
+  - honggfuzz
 - name: coverage-build
   dockerfile: oss-crs/dockerfiles/coverage-builder.Dockerfile
   outputs:

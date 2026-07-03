@@ -3,7 +3,7 @@
 # =============================================================================
 # FROM the framework-provided base_runner_image (matched to the target's base OS) so the
 # harness binaries load under a matching glibc/ABI. Installs the full Rust analysis
-# toolchain (fuzzing + bolero + Kani/CBMC + Miri + rust-gdb), Node + the Claude Agent SDK,
+# toolchain (cargo-fuzz + Kani/CBMC + Miri + rust-gdb), Node + the Claude Agent SDK,
 # libCRS, and the rustmite TypeScript app. Heavy; all engine toolchains are best-effort so
 # a transient failure degrades (the crs-* tools/skills detect absence) rather than breaking
 # the image.
@@ -43,7 +43,7 @@ ENV PATH="/opt/codeql:${PATH}"
 
 # -----------------------------------------------------------------------------
 # Rust analysis toolchain. rustup (nightly default, +stable) with the `miri` + `rust-src`
-# components -> crs-miri + rust-gdb; `cargo install` cargo-fuzz / cargo-bolero (harness
+# components -> crs-miri + rust-gdb; `cargo install` cargo-fuzz (harness
 # build + fuzz/kani engines) and kani-verifier; `cargo kani setup` pulls the CBMC backend.
 # Best-effort/guarded; the crs-* tools gate on tool presence.
 ENV RUSTUP_HOME=/usr/local/rustup \
@@ -64,10 +64,11 @@ RUN set -e; \
     rm -f /tmp/rustup-init.sh; \
     chmod -R a+rwX "$CARGO_HOME" "$RUSTUP_HOME" 2>/dev/null || true
 
-# cargo-fuzz + cargo-bolero (harness build + fuzz/kani drivers). Best-effort.
-RUN ( cargo +"${RUST_NIGHTLY}" install cargo-fuzz cargo-bolero \
-      && command -v cargo-bolero && echo "cargo-fuzz + cargo-bolero OK" ) \
-    || echo "WARN: cargo-fuzz/cargo-bolero install failed"; \
+# cargo-fuzz (build/rebuild generated fuzz_target! harnesses from /src). Engine diversity
+# (AFL/honggfuzz) comes from the OSS-Fuzz build phases, not a Rust-side fuzzer package.
+RUN ( cargo +"${RUST_NIGHTLY}" install cargo-fuzz \
+      && command -v cargo-fuzz && echo "cargo-fuzz OK" ) \
+    || echo "WARN: cargo-fuzz install failed"; \
     chmod -R a+rwX "$CARGO_HOME" 2>/dev/null || true
 
 # Kani (model checker) + CBMC backend. Kani ships PREBUILT binaries that are glibc-version

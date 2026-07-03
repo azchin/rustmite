@@ -41,8 +41,8 @@ crs-kani prove --crate-dir /src/<crate> --harness kani_check --pov-harness {harn
 ## Mapping caveat (important)
 The concretized bytes are the input to **the function your proof calls**. For a Tier-1 PoV
 they must be the input the `--pov-harness` libFuzzer harness consumes — so either prove over
-the **same entry** the fuzz harness calls (`data → decode(data)`), or build a dedicated bolero
-harness for the leaf (crs-bolero / crs-harness) and pass that as `--pov-harness`. If the
+the **same entry** the fuzz harness calls (`data → decode(data)`), or generate a dedicated
+`fuzz_target!` for the leaf (crs-harness) and pass that as `--pov-harness`. If the
 counterexample is for a leaf that the stock harness can't be fed directly, record it as a
 Tier-3 SARIF bug-candidate.
 

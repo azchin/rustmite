@@ -10,7 +10,6 @@
     "crs-codeql": "dist/tools/codeql.js",
     "crs-kani": "dist/tools/kani.js",
     "crs-miri": "dist/tools/miri.js",
-    "crs-bolero": "dist/tools/bolero.js",
     "crs-harness": "dist/tools/harness.js",
     "crs-sarif": "dist/tools/sarif.js"
   },

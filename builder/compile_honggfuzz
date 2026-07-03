@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+# honggfuzz build (Rust): `cargo fuzz build` links the precompiled honggfuzz engine
+# (honggfuzz.a) via CUSTOM_LIBFUZZER_PATH; compile_honggfuzz also drops the honggfuzz
+# runner into $OUT. Output key must match the `honggfuzz-build` phase in oss-crs/crs.yaml.
+#
+set -e
+
+FUZZING_ENGINE=honggfuzz compile
+libCRS submit-build-output "$OUT" honggfuzz

@@ -89,9 +89,12 @@ export function corpusDir(harness: string): string {
   return d;
 }
 
-// build variant -> (libCRS output key, local download path)
+// build variant -> (libCRS output key, local download path). Each fuzzing engine has its own
+// build phase / output key (build=libFuzzer, afl, honggfuzz); Kani/Miri read /src directly.
 export const BUILD_VARIANTS: Record<string, { key: string; local: string }> = {
   asan: { key: "build", local: OUT_DIR },
+  afl: { key: "afl", local: "/work/afl-build" },
+  honggfuzz: { key: "honggfuzz", local: "/work/honggfuzz-build" },
   debug: { key: "debug", local: "/work/debug-build" },
   coverage: { key: "coverage", local: "/work/coverage-build" },
 };
