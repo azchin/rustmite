@@ -68,6 +68,16 @@ oss-crs/dockerfiles builder + runner images
 notes/              reproduce.sh TODO, etc.
 ```
 
+## End-to-end validation (planted bug via `--target-source-path`)
+**Both engines found a planted index-OOB in image-png end-to-end through oss-crs, as verified
+Tier-1 PoVs** (`notes/e2e-planted-bug.md`):
+- **Kani** (`run_kani_only`): agent found the bounded helper → `[u8;4]` proof → FAILED →
+  concretized → framed a 33-byte PNG → PoV `ihdr_width_oob` (crashes decode at common.rs:996).
+- **Miri** (`run_miri_only`): agent triaged an input → Miri PANIC at common.rs:996 → run-pov →
+  Tier-1 PoV (33-byte PNG), auto-submitted to EXCHANGE_DIR. **POVs: 1**.
+- Learned: `--target-source-path` must be a **git repo mirroring `/src`** (`build.sh` +
+  `image-png/`), rsynced over `/src` with `--delete`.
+
 ## Status log
 - **Framework scaffold — VALIDATED.** crs.yaml + 4 builder scripts + 5 dockerfiles +
   registry + compose. `oss-crs prepare` OK; `oss-crs build-target` on image-png OK for all
