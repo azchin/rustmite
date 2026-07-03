@@ -38,7 +38,18 @@ Reference CRS being ported/mined: `~/post/crs-bug-finding-reference` (esp.
   crs-kani false-negative (a cargo build error was misreported as SUCCESS). **Notes:** kani
   0.55 (20.04) bundles Cargo 1.83-nightly → only builds ≤edition-2021 crates; T2 checks-enabled
   rebuild via build_project still a TODO.
-- [ ] **M2** — Miri oracle (crs-miri + miri-triage; corpus/crash triage → T1/T3).
+- [x] **M2** — Miri oracle. **Code-complete; mechanics host-validated.** `crs-miri test/scan`
+  runs a given input through Miri via a `#[test]` reading `$MIRI_INPUT`
+  (`-Zmiri-disable-isolation`), classifies ub/panic/unsupported/clean + parses `src:line`,
+  tiers via run-pov (T1 PoV) / `crs-sarif` (T3 UB). Host test: `from_raw_parts` over-read →
+  "Miri reported UB at src/lib.rs:3"; safe fold → CLEAN. `miri-triage` agent + skill; roster
+  `run`+`run_miri_only`; runner pre-builds the Miri sysroot. **Validated on real code**
+  (`notes/miri-validation.md`): synthetic `from_raw_parts` over-read → "UB at src/lib.rs:3";
+  safe fold → CLEAN; the **actual `png` decoder** (Decoder→read_info→next_frame) on a 1×1 PNG →
+  CLEAN; compile errors classified `unsupported`, not false UB. **Honest gap:** the in-container
+  `run_miri_only` run completed but landed no Miri verdict in 40 min (transcript auto-cleaned;
+  likely Miri too slow on the agent's scope). **Lesson:** scope Miri to tiny inputs / leaf
+  functions (~100–1000× slowdown), same as Kani.
 - [ ] **M3** — Harness-gen (crs-bolero + crs-harness + harness-smith; feedback loop).
 - [ ] **Cross-cutting** — crs-sarif, threat-model asset, tiered submission pipeline,
   bolero harness template, reproduce.sh framework TODO note.
