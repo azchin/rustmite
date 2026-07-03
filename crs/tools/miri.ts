@@ -32,9 +32,9 @@ function cargoMiri(crateDir: string, test: string, env: NodeJS.ProcessEnv): Miri
   else if (/unsupported operation|can't call foreign function|Miri (cannot|does not support)|not supported by Miri/i.test(out)) kind = "unsupported";
   else if (/panicked at|thread '.*' panicked/i.test(out)) kind = "panic";
   else if (r.code !== 0 && /error(\[|:)/.test(out)) kind = "unsupported"; // compile/setup error, not a bug
-  // First in-crate source location Miri points at (for a SARIF report).
+  // Source location: Miri's `--> file.rs:line:col` (UB), or a Rust `panicked at file.rs:line`.
   let loc: MiriResult["loc"];
-  const m = out.match(/-->\s+([^\s:]+\.rs):(\d+):\d+/);
+  const m = out.match(/-->\s+([^\s:]+\.rs):(\d+):\d+/) ?? out.match(/panicked at\s+([^\s:]+\.rs):(\d+):\d+/);
   if (m) loc = { file: m[1], line: parseInt(m[2], 10) };
   return { code: r.code, out, kind, loc };
 }
