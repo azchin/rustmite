@@ -8,5 +8,9 @@
 #
 set -e
 
+# Bound compile parallelism: all build phases compile concurrently, and a wide
+# cpuset otherwise spawns ~ncpu rustc jobs PER phase, exhausting fork/memory. Cap it.
+export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-6}"
+
 FUZZING_ENGINE=afl compile
 libCRS submit-build-output "$OUT" afl
