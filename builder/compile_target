@@ -1,0 +1,17 @@
+#!/bin/bash
+#
+# Default build (Rust): run the OSS-Fuzz `compile` wrapper (which calls the target's
+# build.sh — typically `cargo fuzz build` / `cargo bolero build`, honoring $RUSTFLAGS),
+# then record the harness binaries under `build` and the post-compiled source under
+# `src`. Output keys must match the `build` phase in oss-crs/crs.yaml.
+#
+set -e
+
+compile
+
+# OSS-Fuzz places the compiled libFuzzer harnesses in $OUT (typically /out).
+libCRS submit-build-output "$OUT" build
+
+# Keep the full source tree so the run-phase agents can read it AND so the toolchain
+# engines (Kani, Miri, bolero) can build from source in the runner (they need /src).
+libCRS submit-build-output "$SRC" src

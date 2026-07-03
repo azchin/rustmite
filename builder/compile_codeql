@@ -1,0 +1,31 @@
+#!/bin/bash
+#
+# CodeQL build (Rust): create a CodeQL database with the `rust` extractor for semantic
+# enumeration queries (`import rust`). The rust extractor is "build mode: none" — it
+# reads the Cargo workspace and resolves the dep graph with cargo itself (network is
+# available in the build phase), so there is NO `--command`. Output key must match the
+# `codeql-build` phase in oss-crs/crs.yaml.
+#
+set -e
+
+db="$OUT/codeql/db"
+rm -rf "$db"
+mkdir -p "$(dirname "$db")"
+
+# Point --source-root at the crate/workspace root (the WORKDIR, which has Cargo.toml);
+# fall back to $SRC.
+root="$PWD"
+[ -f "$root/Cargo.toml" ] || root="$SRC"
+echo "[compile_codeql] rust extractor over source-root=$root" >&2
+
+codeql database create "$db" \
+  --language=rust \
+  --source-root="$root" \
+  --overwrite
+
+if [ ! -d "$db/db-rust" ]; then
+  echo "[compile_codeql] CodeQL database missing db-rust dir; extraction failed" >&2
+  exit 1
+fi
+
+libCRS submit-build-output "$db" codeql

@@ -1,0 +1,28 @@
+{
+  "name": "rustmite",
+  "version": "0.1.0",
+  "description": "Rust bug-finding (fuzzing + Miri + Kani) and harness-generation CRS",
+  "type": "module",
+  "engines": { "node": ">=18.0.0" },
+  "bin": {
+    "crs-fuzz": "dist/tools/fuzz.js",
+    "crs-coverage": "dist/tools/coverage.js",
+    "crs-codeql": "dist/tools/codeql.js",
+    "crs-kani": "dist/tools/kani.js",
+    "crs-miri": "dist/tools/miri.js",
+    "crs-bolero": "dist/tools/bolero.js",
+    "crs-harness": "dist/tools/harness.js",
+    "crs-sarif": "dist/tools/sarif.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.199"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "@types/node": "^20.0.0"
+  }
+}

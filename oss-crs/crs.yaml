@@ -1,0 +1,61 @@
+name: rustmite
+type:
+- bug-finding
+- harness-gen
+version: 0.1.0
+docker_registry: ghcr.io/andrewqchin/rustmite
+
+# No prepare_phase: the runner builds FROM the framework-provided base_runner_image at
+# run time and installs its own tooling (Rust + CBMC + bolero/miri + Node + Agent SDK).
+
+# Rust-only. cargo-fuzz / cargo-bolero emit standalone libFuzzer $OUT binaries that the
+# framework's run-pov executes directly; the toolchain engines (Kani, Miri, bolero) run
+# from /src in the runner (hence the `src` output below is required, not optional).
+target_build_phase:
+- name: build
+  dockerfile: oss-crs/dockerfiles/builder.Dockerfile
+  outputs:
+  - build
+  - src
+- name: coverage-build
+  dockerfile: oss-crs/dockerfiles/coverage-builder.Dockerfile
+  outputs:
+  - coverage
+- name: debug-build
+  dockerfile: oss-crs/dockerfiles/debug-builder.Dockerfile
+  outputs:
+  - debug
+- name: codeql-build
+  dockerfile: oss-crs/dockerfiles/codeql-builder.Dockerfile
+  outputs:
+  - codeql
+
+crs_run_phase:
+  main:
+    dockerfile: oss-crs/dockerfiles/runner.Dockerfile
+    additional_env:
+      # The TypeScript supervisor picks its top-level flow from $CRS_ENTRYPOINT (without
+      # rebuilding the image). Default: the concurrent multi-engine supervisor.
+      #   run            - fuzz ∥ kani ∥ miri ∥ harness-gen supervisor (default)
+      #   run_fuzz_only  - fuzzing loop only (M0 parity / debugging)
+      #   idle           - boot then sleep (docker exec in to drive crs-* tools by hand)
+      CRS_ENTRYPOINT: run
+      ANTHROPIC_MODEL: claude-opus-4-8
+      # AGENT_TIMEOUT: "0"   # seconds, 0 = no limit (default)
+
+supported_target:
+  mode:
+  - full
+  - delta
+  language:
+  - rust
+  sanitizer:
+  - address
+  architecture:
+  - x86_64
+
+# Validation baseline when an LLM proxy is configured (llm_config). Ignored when the
+# CRS authenticates via CLAUDE_CODE_OAUTH_TOKEN.
+required_llms:
+- claude-opus-4-8
+- claude-sonnet-4-6

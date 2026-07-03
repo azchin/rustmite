@@ -1,0 +1,11 @@
+#!/bin/bash
+#
+# Coverage build (Rust): llvm-cov-instrumented harnesses for coverage feedback. For
+# Rust, OSS-Fuzz's SANITIZER=coverage sets the rustc coverage instrumentation and
+# cargo-fuzz/bolero emit llvm-cov-compatible binaries. Output key must match the
+# `coverage-build` phase in oss-crs/crs.yaml.
+#
+set -e
+
+SANITIZER=coverage compile
+libCRS submit-build-output "$OUT" coverage

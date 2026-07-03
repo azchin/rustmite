@@ -1,0 +1,18 @@
+#!/bin/bash
+#
+# Debug build (Rust): -O0 + full debuginfo + kept symbols for clean rust-gdb stacks.
+# CFLAGS are ignored by rustc, so drive it via cargo's release-profile env + RUSTFLAGS.
+# We deliberately do NOT force debug-assertions/overflow-checks — `compile` re-runs the
+# target's own build.sh, so the debug build inherits the target's crash semantics and a
+# crash seen under gdb still reproduces under `libCRS run-pov` (the base ASan build).
+# Output key must match the `debug-build` phase in oss-crs/crs.yaml.
+#
+set -e
+
+export CARGO_PROFILE_RELEASE_OPT_LEVEL=0
+export CARGO_PROFILE_RELEASE_DEBUG=2
+export CARGO_PROFILE_RELEASE_STRIP=false
+export RUSTFLAGS="${RUSTFLAGS:-} -Cforce-frame-pointers=yes -Cdebuginfo=2"
+
+compile
+libCRS submit-build-output "$OUT" debug
