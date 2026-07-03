@@ -15,7 +15,7 @@ export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="${SRC}/aflplusplus/afl-clan
 
 # Bound compile parallelism: -Ccodegen-units=1 + ASan is memory-heavy, and a wide cpuset
 # spawns ~ncpu rustc jobs, which can exceed the builder memory limit. Cap it.
-export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
+export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-1}"
 
 FUZZING_ENGINE=afl compile
 libCRS submit-build-output "$OUT" afl
