@@ -24,7 +24,13 @@ Reference CRS being ported/mined: `~/post/crs-bug-finding-reference` (esp.
   pov-gen-cov subagents→crs-fuzz RUNNING (corpus growing). Runner image carries the full
   toolchain (cargo-bolero, cargo-kani+CBMC, cargo-miri, rust-gdb) — M1-M3 unblocked. Ports
   seed-gen/pov-gen/pov-gen-cov + crs-fuzz/crs-coverage/crs-codeql.
-- [ ] **M1** — Kani engine (crs-kani + kani-prove; concretize→run-pov + T2 self-verify).
+- [x] **M1** — Kani engine. **Code-complete; mechanics validated on host.** `crs-kani prove`
+  runs `cargo kani -Z concrete-playback`, parses `concrete_vals`, **concatenates** the inner
+  byte-vecs (Kani records one per `any()` draw; `[u8;N]`=N of them) → `.bin` → `run-pov`
+  (Tier-1 PoV, else Tier-3 SARIF). Host test on a `[u8;4]` proof produced the exact
+  counterexample `fe ff ff ff`; parser reconstructs it. `kani-prove` agent + skill; wired into
+  the `run` roster + `run_kani_only`. **Pending:** full in-container agentic validation run
+  (T2 checks-enabled rebuild via build_project still a TODO in the tool).
 - [ ] **M2** — Miri oracle (crs-miri + miri-triage; corpus/crash triage → T1/T3).
 - [ ] **M3** — Harness-gen (crs-bolero + crs-harness + harness-smith; feedback loop).
 - [ ] **Cross-cutting** — crs-sarif, threat-model asset, tiered submission pipeline,

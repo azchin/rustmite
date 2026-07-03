@@ -69,11 +69,23 @@ RUN ( cargo +"${RUST_NIGHTLY}" install cargo-fuzz cargo-bolero \
     || echo "WARN: cargo-fuzz/cargo-bolero install failed"; \
     chmod -R a+rwX "$CARGO_HOME" 2>/dev/null || true
 
-# Kani (model checker) + CBMC backend. Heaviest/most fragile step; best-effort.
-RUN ( cargo install --locked kani-verifier \
+# Kani (model checker) + CBMC backend. Kani ships PREBUILT binaries that are glibc-version
+# sensitive, and base_runner_image tracks the target's base OS: ubuntu-20.04 (glibc 2.31) or
+# ubuntu-24.04 (glibc 2.39). Modern kani needs glibc>=2.34; kani 0.55.0 is the last release
+# whose bundle runs on glibc 2.31. Detect glibc and pick the version accordingly, then VERIFY
+# `cargo kani --version` actually RUNS (not just exists) — otherwise crs-kani is unavailable
+# (the crs-kani skill gates on tool presence). Best-effort: never fail the image.
+ARG KANI_VERSION_MODERN=0.67.0
+ARG KANI_VERSION_LEGACY=0.55.0
+RUN set -e; \
+    minor=$(ldd --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 | cut -d. -f2); \
+    if [ "${minor:-0}" -ge 34 ]; then KV="${KANI_VERSION_MODERN}"; else KV="${KANI_VERSION_LEGACY}"; fi; \
+    echo "detected glibc 2.${minor:-?}; installing kani-verifier ${KV}"; \
+    ( cargo install --locked "kani-verifier@${KV}" \
       && cargo kani setup \
-      && command -v cargo-kani && echo "kani + CBMC OK" ) \
-    || echo "WARN: kani/CBMC install failed; crs-kani will be unavailable"; \
+      && cargo kani --version \
+      && echo "kani ${KV} + CBMC OK (runs on glibc 2.${minor})" ) \
+    || echo "WARN: kani ${KV} install/run failed on this glibc; crs-kani will be unavailable"; \
     chmod -R a+rwX "$CARGO_HOME" "$RUSTUP_HOME" 2>/dev/null || true
 
 # Identity for any git operations the agents perform.
