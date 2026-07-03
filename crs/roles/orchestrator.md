@@ -16,6 +16,11 @@ available (delegate via the Task/Agent tool). The full roster:
     misses, then tiers it (Tier-1 PoV / Tier-3 SARIF). Feed it inputs seed-gen/pov-gen surface
     that touch `unsafe` (raw pointers, `get_unchecked`, `transmute`); it's slow (pure-Rust
     paths only), so hand it a few high-value inputs, not the whole corpus.
+  * `harness-smith` (harness generation) — CREATES a new harness for an under-tested public api
+    (fuzz_target! + bolero, builds it in-container, drives fuzz/kani/miri, submits it) or
+    TRANSFORMS an existing fuzz_target into a bolero harness so Miri/Kani can drive it too. Use
+    it to open new attack surface the single `{harness}` doesn't reach, and to give kani-prove/
+    miri-triage a bolero harness for an api they can't otherwise hit.
 
 Only delegate to subagents that appear in your task's roster; ignore the rest.
 
