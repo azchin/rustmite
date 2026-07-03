@@ -46,17 +46,31 @@ function cargoKani(crateDir: string, harness: string): { code: number; out: stri
 function prove(crateDir: string, harness: string, povHarness?: string): number {
   if (!have("cargo-kani")) { console.error("[crs-kani] cargo-kani not available in this image."); return 2; }
   log(`kani prove: crate=${crateDir} harness=${harness}`);
-  const { out } = cargoKani(crateDir, harness);
-  const failed = /VERIFICATION:- FAILED|FAILURE|assertion failed|index out of bounds|attempt to/.test(out);
+  const { code, out } = cargoKani(crateDir, harness);
+  // A verdict requires an explicit VERIFICATION line. If neither appears, kani never actually
+  // model-checked (a manifest/compile/setup error — e.g. an edition the pinned kani's bundled
+  // Cargo can't parse) — that is NOT "proven sound"; surface it as an error, never SUCCESS.
+  const succeeded = /VERIFICATION:- SUCCESSFUL/.test(out);
+  const failed = /VERIFICATION:- FAILED/.test(out);
   const vals = parseConcreteVals(out);
-  if (!failed && vals.length === 0) {
-    console.log(`[crs-kani] ${harness}: VERIFICATION SUCCESS (no counterexample within bounds).`);
+  if (!succeeded && !failed) {
+    console.error(`[crs-kani] ${harness}: kani produced NO verdict (cargo rc=${code}) — build/manifest/` +
+      `setup error, NOT a proof of soundness. Fix the crate/proof so it compiles under kani. Tail:`);
+    process.stderr.write(out.split("\n").filter((l) => l.trim()).slice(-20).join("\n") + "\n");
+    return 3;
+  }
+  if (succeeded && vals.length === 0) {
+    console.log(`[crs-kani] ${harness}: VERIFICATION SUCCESSFUL — property holds for all inputs within the bound.`);
     return 0;
   }
   if (vals.length === 0) {
-    console.log(`[crs-kani] ${harness}: a check failed but no concrete playback was produced ` +
+    console.log(`[crs-kani] ${harness}: a check FAILED but no concrete playback was produced ` +
       `(non-panic UB checks are not concretized). Treat the Kani report as a Tier-3 lead.`);
     process.stdout.write(out.split("\n").filter((l) => /FAILED|Failed|panic|overflow|bounds/.test(l)).slice(0, 20).join("\n") + "\n");
+    return 0;
+  }
+  if (Buffer.concat(vals.map((v) => Buffer.from(v))).length === 0) {
+    console.log(`[crs-kani] ${harness}: FAILED but the concretized input is empty — not a usable PoV; Tier-3 lead.`);
     return 0;
   }
   // Kani records one inner Vec per `kani::any()` draw. For `let data:[u8;N]=kani::any()`
