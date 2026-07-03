@@ -1,12 +1,18 @@
 // rustmite run-phase entrypoint. Dispatches on $CRS_ENTRYPOINT:
-//   run            - the concurrent multi-engine supervisor (M0: fuzzing; M1-M3 add
-//                    kani ∥ miri ∥ harness-gen drivers here)
-//   run_fuzz_only  - fuzzing loop only
+//   run            - full supervisor: fuzzing + kani (+ miri M2, + harness-gen M3) subagents
+//   run_fuzz_only  - fuzzing loop only (seed-gen ∥ pov-gen ∥ pov-gen-cov)
+//   run_kani_only  - kani-prove only (isolated M1 validation)
 //   idle           - boot, then sleep (docker exec in to drive crs-* tools by hand)
 
 import { boot } from "./boot.js";
 import { harnessName, log } from "./common.js";
-import { runFuzzSupervisor } from "./drivers/fuzz.js";
+import { runSupervisor } from "./drivers/fuzz.js";
+
+const ROSTERS: Record<string, string[]> = {
+  run: ["seed-gen", "pov-gen", "pov-gen-cov", "kani-prove"],
+  run_fuzz_only: ["seed-gen", "pov-gen", "pov-gen-cov"],
+  run_kani_only: ["kani-prove"],
+};
 
 async function main(): Promise<void> {
   const harness = harnessName();
@@ -24,9 +30,8 @@ async function main(): Promise<void> {
     return;
   }
 
-  // M0: `run` and `run_fuzz_only` both drive the fuzzing supervisor. The concurrent
-  // kani ∥ miri ∥ harness-gen drivers are wired into `run` in milestones M1-M3.
-  await runFuzzSupervisor(ctx, abort);
+  const roster = ROSTERS[entry] ?? ROSTERS.run;
+  await runSupervisor(ctx, abort, roster);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

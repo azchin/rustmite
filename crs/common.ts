@@ -8,10 +8,10 @@ import { spawn, spawnSync, type SpawnOptions } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-export const OUT_DIR = "/out";
-export const SRC_DIR = "/src";
-export const WORK_DIR = "/work";
-export const ARTIFACT_DIR = "/artifacts";
+export const OUT_DIR = process.env.CRS_OUT_DIR ?? "/out";
+export const SRC_DIR = process.env.CRS_SRC_DIR ?? "/src";
+export const WORK_DIR = process.env.CRS_WORK_DIR ?? "/work";
+export const ARTIFACT_DIR = process.env.CRS_ARTIFACT_DIR ?? "/artifacts";
 export const POV_DIR = path.join(ARTIFACT_DIR, "povs");
 export const CORPUS_ROOT = process.env.CRS_CORPUS_DIR ?? path.join(ARTIFACT_DIR, "corpus");
 export const AGENT_WORK_DIR = path.join(WORK_DIR, "agent");

@@ -19,7 +19,10 @@ Reference CRS being ported/mined: `~/post/crs-bug-finding-reference` (esp.
   T2 self-verified via checks-enabled `build_project` rebuild; T3 SARIF `bug-candidate`.
 
 ## Milestones
-- [ ] **M0** — TS supervisor boot + fuzzing parity (image-png/decode). Ports
+- [x] **M0** — TS supervisor boot + fuzzing parity (image-png/decode). **DONE + validated
+  end-to-end:** boot→auth(OAuth via IS_SANDBOX=1)→SDK orchestrator + seed-gen/pov-gen/
+  pov-gen-cov subagents→crs-fuzz RUNNING (corpus growing). Runner image carries the full
+  toolchain (cargo-bolero, cargo-kani+CBMC, cargo-miri, rust-gdb) — M1-M3 unblocked. Ports
   seed-gen/pov-gen/pov-gen-cov + crs-fuzz/crs-coverage/crs-codeql.
 - [ ] **M1** — Kani engine (crs-kani + kani-prove; concretize→run-pov + T2 self-verify).
 - [ ] **M2** — Miri oracle (crs-miri + miri-triage; corpus/crash triage → T1/T3).
