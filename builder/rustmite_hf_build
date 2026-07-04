@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+# honggfuzz build (Rust). Named `rustmite_hf_build`, NOT `compile_honggfuzz` — see rustmite_afl_build
+# for why (avoids overwriting the OSS-Fuzz engine script that `compile` sources -> recursion).
+# honggfuzz's driver .a is self-contained (no linker fix needed). Output key: honggfuzz.
+#
+set -e
+
+FUZZING_ENGINE=honggfuzz compile
+libCRS submit-build-output "$OUT" honggfuzz

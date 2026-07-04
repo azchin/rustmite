@@ -1,0 +1,16 @@
+#!/bin/bash
+#
+# AFL build (Rust). IMPORTANT: named `rustmite_afl_build`, NOT `compile_afl` — the OSS-Fuzz
+# `compile` script sources `/usr/local/bin/compile_afl` via `. compile_$FUZZING_ENGINE`, so a
+# builder script installed as `compile_afl` would overwrite it and recurse infinitely (fork
+# bomb -> "fork: Cannot allocate memory"). Real fix for Rust+AFL: rust links via `clang`, which
+# doesn't inject the AFL runtime (__afl_manual_init/__afl_area_ptr/...) that afl-clang-fast
+# provides, so point the cargo linker at afl-clang-fast. Output key must match the `afl-build`
+# phase in oss-crs/crs.yaml.
+#
+set -e
+
+export CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER="${SRC}/aflplusplus/afl-clang-fast"
+
+FUZZING_ENGINE=afl compile
+libCRS submit-build-output "$OUT" afl
