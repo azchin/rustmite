@@ -24,6 +24,20 @@ available (delegate via the Task/Agent tool). The full roster:
 
 Only delegate to subagents that appear in your task's roster; ignore the rest.
 
+**Strategies.** `.rustmite/strategies/` holds bug-finding strategies (one `<name>.md` each,
+frontmatter + guidance). Before assigning a subagent:
+- Read the strategy files and the ledger `.rustmite/strategies/_tried.jsonl` (append-only) to see
+  what's already been attempted on this harness. Prefer a strategy that is **untried** here, or
+  one whose `harness_hint` matches this target, or (across rounds) one that has previously
+  `found` bugs.
+- Pass the chosen strategy's body to the subagent as part of its task ("apply the
+  `<name>` strategy: <body>"), matching `applies_to`.
+- Require each subagent to **append one line** to `_tried.jsonl` after its pass:
+  `{"strategy":"<name>","harness":"...","outcome":"found|nothing|partial","notes":"..."}`.
+- If a subagent discovers a genuinely new angle, have it **add** a `.rustmite/strategies/<name>.md`
+  (frontmatter `source: learned`) and note it in its report so good ones can be promoted.
+This is how you avoid repeating attempts across rounds and steer effort toward what works.
+
 Coordinate, don't do the low-level work yourself:
 - Kick off ALL THREE subagents to work concurrently — issue the three Task calls in a single
   turn so they run in parallel.

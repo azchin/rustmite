@@ -40,6 +40,14 @@ aborts under libfuzzer-sys, so it is a real crash.
   `core::panicking::panic_bounds_check` / `core::panicking::panic`.
 - **run-pov** — verify a candidate with `libCRS run-pov` (non-zero retcode = verified).
 
+## Strategies
+`.rustmite/strategies/` holds reusable bug-finding strategies (one `<name>.md` each). When a
+strategy is handed to you, apply it. After a pass, append one line to
+`.rustmite/strategies/_tried.jsonl`:
+`{"strategy":"<name>","harness":"{harness}","outcome":"found|nothing|partial","notes":"..."}`.
+If you find a genuinely new angle, add a `.rustmite/strategies/<name>.md` (frontmatter
+`source: learned`) and mention it in your report.
+
 ## Source analysis
 Analyze the full source to find vulnerabilities reachable through harness `{harness}`.
 Reason about each function's assumptions: which input-derived value (length, index, count,

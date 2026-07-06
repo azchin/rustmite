@@ -100,6 +100,32 @@ function writeClaudeMd(sourceDir: string, vars: Record<string, string>): void {
   fs.writeFileSync(path.join(sourceDir, "CLAUDE.md"), fillPlaceholders(fs.readFileSync(tmpl, "utf8"), vars));
 }
 
+// Install strategy prompts into a writable per-run dir so the orchestrator can consult them,
+// track which were tried (append-only _tried.jsonl), and add newly-discovered strategies.
+function installStrategies(sourceDir: string, vars: Record<string, string>): void {
+  const src = path.join(ASSET_ROOT, "strategies");
+  const dst = path.join(sourceDir, ".rustmite", "strategies");
+  fs.mkdirSync(dst, { recursive: true });
+  if (fs.existsSync(src)) {
+    for (const f of fs.readdirSync(src)) {
+      if (!f.endsWith(".md")) continue;
+      fs.writeFileSync(path.join(dst, f), fillPlaceholders(fs.readFileSync(path.join(src, f), "utf8"), vars));
+    }
+  }
+  const ledger = path.join(dst, "_tried.jsonl");
+  if (!fs.existsSync(ledger)) fs.writeFileSync(ledger, "");
+  const readme = path.join(dst, "README.md");
+  if (!fs.existsSync(readme)) fs.writeFileSync(readme,
+    "# strategies\nEach `<name>.md` is a bug-finding strategy (frontmatter + body). The orchestrator\n" +
+    "picks an untried strategy per subagent and passes its body along. After each attempt, append one\n" +
+    "JSON line to `_tried.jsonl`:\n" +
+    '`{\"strategy\":\"<name>\",\"harness\":\"<h>\",\"outcome\":\"found|nothing|partial\",\"notes\":\"...\"}`\n' +
+    "Agents MAY add a new `<name>.md` (add `source: learned` to its frontmatter) when they find a\n" +
+    "useful angle; report added strategies so good ones can be promoted into the repo.\n");
+  const learned = fs.readdirSync(dst).filter((f) => f.endsWith(".md") && f !== "README.md");
+  log(`installed strategies: ${learned.join(", ")}`);
+}
+
 export function boot(harness: string): RunContext {
   process.umask(0o000);
   log(`Starting rustmite: harness=${harness} language=${LANGUAGE} sanitizer=${SANITIZER}`);
@@ -118,5 +144,6 @@ export function boot(harness: string): RunContext {
   fs.mkdirSync(path.join(WORK_DIR, "agent"), { recursive: true });
   writeClaudeMd(sourceDir, vars);
   installSkills(sourceDir, vars);
+  installStrategies(sourceDir, vars);
   return { harness, sourceDir, target, diffs, seeds, bugCandidates };
 }
